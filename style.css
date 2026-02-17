@@ -1,0 +1,32 @@
+.app-container{
+    display: flex;
+    gap: 20px;
+}
+
+.toolbar{
+    border: 1px solid #ccc;
+    padding: 10px;
+    width: 200px;
+    min-height: 400px;
+}
+
+.block-template{
+    background-color: #e9f5ff;
+    text-align: center;
+    border: 1px dashed #a0c4e4;
+    padding: 10px;
+    cursor: grab;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.block-template:hover{
+    background-color: #d4eaff;
+}
+
+.canvas {
+    flex-grow: 1;
+    border: 1px solid #ccc;
+    padding: 10px;
+    min-height: 400px;
+}
