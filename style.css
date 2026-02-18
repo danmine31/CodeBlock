@@ -1,16 +1,25 @@
-.app-container{
+body {
+    font-family: sans-serif;
+}
+
+.app-container {
     display: flex;
     gap: 20px;
+    padding: 20px;
 }
 
-.toolbar{
+.toolbar {
     border: 1px solid #ccc;
+    border-radius: 4px;
     padding: 10px;
     width: 200px;
-    min-height: 400px;
 }
 
-.block-template{
+.toolbar h3 {
+    margin-top: 0;
+}
+
+.block-template {
     background-color: #e9f5ff;
     text-align: center;
     border: 1px dashed #a0c4e4;
@@ -18,10 +27,18 @@
     cursor: grab;
     margin-bottom: 10px;
     border-radius: 4px;
+    user-select: none;
 }
 
-.block-template:hover{
+.block-template:hover {
     background-color: #d4eaff;
+}
+
+.canvas-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .canvas {
@@ -29,4 +46,40 @@
     border: 1px solid #ccc;
     padding: 10px;
     min-height: 400px;
+    border-radius: 4px;
+}
+
+.output {
+    border: 1px solid #ccc;
+    padding: 10px;
+    min-height: 100px;
+    border-radius: 4px;
+    background-color: #f8f8f8;
+    white-space: pre-wrap;
+}
+
+.block {
+    background-color: #fff;
+    border: 1px solid #a0c4e4;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.block.error {
+    border-color: #ff4d4d;
+    background-color: #ffeaea;
+}
+
+.block input {
+    border: 1px solid #ccc;
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
+.dragging {
+    opacity: 0.666;
 }

@@ -1,21 +1,26 @@
 <!DOCTYPE html>
 <html lang="ru">
-    <head>
-        <meta charset="utf-8"/>
-        <title>CodeBlocks</title>
-        <link rel="stylesheet" href="style.css"/>
-    </head>
-    <body>
-        <div class="app-container">
-            <div class="toolbar">
-                <h3>Блоки</h3>
-                <div class="block-template variable" draggable="true">Объявить переменные</div>
-                <div class="block-template" draggable="true">Присвоить значение</div>
-            </div>
-            <div class="canvas">
-                <h3>Рабочая область</h3>
-            </div>
+<head>
+    <meta charset="utf-8"/>
+    <title>CodeBlocks</title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <div class="app-container">
+        <div class="toolbar">
+            <h3>Блоки</h3>
+            <div class="block-template variable" draggable="true" data-block-type="declare">Объявить переменные</div>
+            <div class="block-template" draggable="true" data-block-type="assign">Присвоить значение</div>
+            <hr/>
+            <button id="run-button">Выполнить</button>
         </div>
-    <script src="script.js"></script>
-    </body>
+        <div class="canvas-wrapper">
+             <h3>Рабочая область</h3>
+            <div class="canvas"></div>
+             <h3>Вывод</h3>
+            <div class="output"></div>
+        </div>
+    </div>
+<script src="script.js"></script>
+</body>
 </html>
