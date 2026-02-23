@@ -90,6 +90,23 @@ document.addEventListener('DOMContentLoaded', function() {
             block.appendChild(input1);
             block.appendChild(text2);
             block.appendChild(input2);
+        } else if (type === 'calculate') {
+            const text1 = document.createElement('span');
+            text1.textContent = 'Присвоить ';
+
+            const input1 = document.createElement('input');
+            input1.placeholder = 'имя переменной';
+
+            const text2 = document.createElement('span');
+            text2.textContent = ' значение выражения ';
+
+            const input2 = document.createElement('input');
+            input2.placeholder = 'a + 5 * b';
+
+            block.appendChild(text1);
+            block.appendChild(input1);
+            block.appendChild(text2);
+            block.appendChild(input2);
         }
         block.addEventListener('dragstart', function() {
             draggingElement = block;
@@ -131,6 +148,33 @@ document.addEventListener('DOMContentLoaded', function() {
                          throw new Error(`Значение "${valueStr}" не является числом.`);
                     }
                     variables[varName] = value;
+                } else if (type === 'calculate') {
+                    const targetVar = inputs[0].value.trim();
+                    const expression = inputs[1].value.trim();
+
+                    if (!targetVar || !expression) {
+                        throw new Error('Укажите переменную для результата и выражение.');
+                    }
+                    if (!(targetVar in variables)) {
+                        throw new Error(`Переменная "${targetVar}" для сохранения результата не объявлена.`);
+                    }
+                    const evaluateExpression = (expr, scope) => {
+                        const varNames = Object.keys(scope);
+                        const varValues = Object.values(scope);
+                        try {
+                            const func = new Function(...varNames, `return ${expr};`);
+                            const result = func(...varValues);
+                            if (typeof result !== 'number' || !isFinite(result)) {
+                                throw new Error(`Результат выражения не является числом.`);
+                            }
+                            return result;
+                        } catch (e) {
+                            throw new Error(`Ошибка в выражении "${expr}": ${e.message}`);
+                        }
+                    };
+
+                    const result = evaluateExpression(expression, variables);
+                    variables[targetVar] = result;
                 }
             } 
             catch (e) {
