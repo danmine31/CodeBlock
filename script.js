@@ -118,6 +118,102 @@ document.addEventListener('DOMContentLoaded', function() {
         return block;
     }
     runButton.addEventListener('click', interpretCode);
+
+    const operations = {
+        '+': { priority: 1, associativity: 'LtoR' },
+        '-': { priority: 1, associativity: 'LtoR' },
+        '*': { priority: 2, associativity: 'LtoR' },
+        '/': { priority: 2, associativity: 'LtoR' },
+        '%': { priority: 2, associativity: 'LtoR' }
+    };
+
+    function tokenize(str) {
+        const tokens = str.replace(/\s+/g, '').match(/(\d+(\.\d+)?|[a-zA-Z_]\w*|[+\-*/%()])/g);
+        if (!tokens) throw new Error("Не удалось разобрать выражение, проверьте синтаксис.");
+        return tokens;
+    }
+
+    function toRPN(tokens, currentVariables) {
+        let outputQueue = [];
+        let operatorStack = [];
+        for (const token of tokens) {
+            if (!isNaN(token)) {
+                outputQueue.push(parseInt(token, 10));
+            } else if (token in currentVariables) {
+                outputQueue.push(currentVariables[token]);
+            } else if (token in operations) {
+
+                while (
+                    operatorStack.length > 0 &&
+                    operatorStack[operatorStack.length - 1] !== '(' &&
+                    (operations[operatorStack[operatorStack.length - 1]].priority > operations[token].priority ||
+                    (operations[operatorStack[operatorStack.length - 1]].priority === operations[token].priority && operations[token].associativity === 'LtoR'))
+                ) {
+                    outputQueue.push(operatorStack.pop());
+                }
+
+                operatorStack.push(token);
+
+            } else if (token === '(') {
+                operatorStack.push(token);
+            } else if (token === ')') {
+                while (operatorStack.length > 0 && operatorStack[operatorStack.length - 1] !== '(') {
+                    outputQueue.push(operatorStack.pop());
+                }
+                if (operatorStack.length === 0) throw new Error("Ошибка: нет пары для скобки.");
+                operatorStack.pop();
+            } else {
+                throw new Error(`Ошибка: неизвестная переменная или символ "${token}"`);
+            }
+        }
+        while (operatorStack.length > 0) {
+            const op = operatorStack.pop();
+            if (op === '(') throw new Error("Ошибка: нет пары для скобки.");
+            outputQueue.push(op);
+        }
+        return outputQueue;
+    }
+
+    function evaluateRPN(rpnQueue) {
+        let stack = [];
+        for (const token of rpnQueue) {
+            if (typeof token === 'number') {
+                if (!Number.isInteger(token)) {
+                    throw new Error(`Обнаружено нецелое число "${token}" в выражении.`);
+                }
+                stack.push(token);
+            } else {
+                if (stack.length < 2) throw new Error("Ошибка в выражении: не хватает операндов.");
+                const b = stack.pop();
+                const a = stack.pop();
+                let result;
+                switch (token) {
+                    case '+': result = a + b; break;
+                    case '-': result = a - b; break;
+                    case '*': result = a * b; break;
+                    case '/':
+                        if (b === 0) throw new Error("Делить на ноль НЕЛЬЗЯ!");
+                        result = Math.trunc(a / b);
+                        break;
+                    case '%':
+                        if (b === 0) throw new Error("Деление на ноль НЕЛЬЗЯ (остаток)!");
+                        result = a % b;
+                        break;
+                }
+                stack.push(result);
+            }
+        }
+        if (stack.length !== 1) throw new Error("Ошибка в синтаксисе выражения.");
+        return stack[0];
+    }
+
+    function calculateExpression(exprStr, currentVariables) {
+        const tokens = tokenize(exprStr);
+        const rpn = toRPN(tokens, currentVariables);
+        const result = evaluateRPN(rpn);
+        return result;
+    }
+
     function interpretCode() {
         const variables = {};
         const blocks = canvas.querySelectorAll('.block');
@@ -130,24 +226,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 const inputs = block.querySelectorAll('input');
                 if (type === 'declare') {
                     const varNames = inputs[0].value.split(',');
+                    const validInput = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
                     for (const name of varNames) {
                         const trimmedName = name.trim();
                         if (trimmedName) {
-                           variables[trimmedName] = 0;
+                            if (!validInput.test(trimmedName)) {
+                                throw new Error(`Недопустимое имя переменной: "${trimmedName}". Оно должно начинаться с буквы или '_' и может содержать только буквы, цифры и '_'.`);
+                            }
+                            variables[trimmedName] = 0;
                         }
                     }
+
                 } else if (type === 'assign') {
                     const varName = inputs[0].value.trim();
                     const valueStr = inputs[1].value.trim();
                     if (!varName) continue;
+
                     if (!(varName in variables)) {
                         throw new Error(`Переменная "${varName}" не объявлена.`);
-                    }                    
-                    const value = parseInt(valueStr, 10);
-                    if (isNaN(value)) {
-                         throw new Error(`Значение "${valueStr}" не является числом.`);
                     }
+
+                    if (!/^-?\d+$/.test(valueStr)) {
+                        throw new Error(`Значение "${valueStr}" не является ЦЕЛЫМ числом.`);
+                    }
+
+                    const value = parseInt(valueStr, 10);
                     variables[varName] = value;
+
                 } else if (type === 'calculate') {
                     const targetVar = inputs[0].value.trim();
                     const expression = inputs[1].value.trim();
@@ -158,39 +263,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!(targetVar in variables)) {
                         throw new Error(`Переменная "${targetVar}" для сохранения результата не объявлена.`);
                     }
-                    const evaluateExpression = (expr, scope) => {
-                        const varNames = Object.keys(scope);
-                        const varValues = Object.values(scope);
-                        try {
-                            const func = new Function(...varNames, `return ${expr};`);
-                            const result = func(...varValues);
-                            if (typeof result !== 'number' || !isFinite(result)) {
-                                throw new Error(`Результат выражения не является числом.`);
-                            }
-                            return result;
-                        } catch (e) {
-                            throw new Error(`Ошибка в выражении "${expr}": ${e.message}`);
-                        }
-                    };
 
-                    const result = evaluateExpression(expression, variables);
+                    const result = calculateExpression(expression, variables);
+                    
+                    if (typeof result !== 'number') {
+                        throw new Error(`Не удалось вычислить выражение. Результат: ${result}`);
+                    }
+
                     variables[targetVar] = result;
                 }
-            } 
+            }
             catch (e) {
                 block.classList.add('error');
                 output.style.color = 'red';
                 output.textContent = `Ошибка в блоке: ${e.message}`;
                 return;
             }
-        }   
+        }
+
         let resultString = 'Выполнение завершено.\n\n';
-        const variableKeys = Object.keys(variables);      
+        const variableKeys = Object.keys(variables);
         if (variableKeys.length === 0) {
-            resultString += '(переменных нет)';
+            resultString += 'Переменных нет.';
         } else {
             for (const key of variableKeys) {
-                 resultString += `${key} = ${variables[key]}\n`;
+                resultString += `${key} = ${variables[key]}\n`;
             }
         }
         output.textContent = resultString;
