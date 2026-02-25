@@ -83,3 +83,22 @@ body {
 .dragging {
     opacity: 0.666;
 }
+
+.if-block {
+    background-color: #f0f8ff;
+    border: 1px solid #add8e6;
+}
+
+.nested-blocks-container {
+    min-height: 50px;
+    padding: 10px;
+    margin-top: 10px;
+    background-color: #ffffff;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+}
+
+.nested-blocks-container .block-wrapper {
+    transform: scale(0.95);
+    margin-left: -10px;
+}
