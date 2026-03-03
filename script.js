@@ -170,12 +170,47 @@ document.addEventListener('DOMContentLoaded', function() {
                     block.appendChild(elseLabel);
                     block.appendChild(elseContainer);
                     toggleElseBtn.textContent = '- иначе';
-                } else {
+                } 
+                
+                else {
                     existingLabel.remove();
                     existingContainer.remove();
                     toggleElseBtn.textContent = '+ иначе';
                 }
             });
+        }
+        else if (type === 'declare-array') {
+            block.appendChild(deleteBtn);
+            const text = document.createElement('span');
+            text.textContent = 'Объявить массив: ';
+            const input1 = document.createElement('input');
+            input1.placeholder = 'имя';
+            const input2 = document.createElement('input');
+            input2.placeholder = 'размер';
+            block.appendChild(text);
+            block.appendChild(input1);
+            block.appendChild(document.createTextNode(' размера '));
+            block.appendChild(input2);
+        } else if (type === 'array-assign') {
+            block.appendChild(deleteBtn);
+            const text1 = document.createElement('span');
+            text1.textContent = 'Присвоить ';
+            const input1 = document.createElement('input');
+            input1.placeholder = 'массив';
+            const text2 = document.createElement('span');
+            text2.textContent = '[';
+            const input2 = document.createElement('input');
+            input2.placeholder = 'индекс';
+            const text3 = document.createElement('span');
+            text3.textContent = '] = ';
+            const input3 = document.createElement('input');
+            input3.placeholder = 'значение';
+            block.appendChild(text1);
+            block.appendChild(input1);
+            block.appendChild(text2);
+            block.appendChild(input2);
+            block.appendChild(text3);
+            block.appendChild(input3);
         }
 
         block.addEventListener('dragstart', function(e) {
@@ -208,15 +243,32 @@ document.addEventListener('DOMContentLoaded', function() {
     function toRPN(tokens, currentVariables) {
         let outputQueue = [];
         let operatorStack = [];
-        for (const token of tokens) {
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
             if (!isNaN(token)) {
                 outputQueue.push(parseInt(token, 10));
-            } else if (token in currentVariables) {
+            } 
+            else if (token in currentVariables && !Array.isArray(currentVariables[token])) {
                 outputQueue.push(currentVariables[token]);
+            }
+            else if (/^[a-zA-Z_]\w*$/.test(token)) {
+                outputQueue.push(token);
+            }
+            else if (token === '[') {
+                operatorStack.push(token);
+            }
+            else if (token === ']') {
+                while (operatorStack.length > 0 && operatorStack[operatorStack.length-1] !== '[') {
+                    outputQueue.push(operatorStack.pop());
+                }
+                if (operatorStack.length === 0) throw new Error("Нет открывающей [");
+                operatorStack.pop();
+                outputQueue.push('[]');
             } else if (token in operations) {
                 while (
                     operatorStack.length > 0 &&
                     operatorStack[operatorStack.length - 1] !== '(' &&
+                    operatorStack[operatorStack.length - 1] !== '[' &&
                     (operations[operatorStack[operatorStack.length - 1]].priority > operations[token].priority ||
                     (operations[operatorStack[operatorStack.length - 1]].priority === operations[token].priority && operations[token].associativity === 'LtoR'))
                 ) {
@@ -237,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         while (operatorStack.length > 0) {
             const op = operatorStack.pop();
-            if (op === '(') throw new Error("Не для всех скобочек есть пара");
+            if (op === '(' || op === '[') throw new Error("Не для всех скобочек есть пара");
             outputQueue.push(op);
         }
         return outputQueue;
@@ -247,14 +299,27 @@ document.addEventListener('DOMContentLoaded', function() {
         let stack = [];
         for (const token of rpnQueue) {
             if (typeof token === 'number') {
-                if (!Number.isInteger(token)) {
-                    throw new Error(`Тут есть нецелое число "${token}"`);
-                }
                 stack.push(token);
-            } else {
+        } else if (typeof token === 'string' && /^[a-zA-Z_]\w*$/.test(token) && token !== '[]' && !(token in operations)) {
+            stack.push(token);
+        } else if (token === '[]') {
+            if (stack.length < 2) throw new Error("Слишком мало операндов для []");
+            const index = stack.pop();
+            const arrayName = stack.pop();
+            if (typeof index !== 'number') throw new Error(`Индекс должен быть числом, получено ${index}`);
+            if (typeof arrayName !== 'string') throw new Error(`Имя массива должно быть строкой, получено ${arrayName}`);
+            if (!(arrayName in variables)) throw new Error(`Массив "${arrayName}" не объявлен`);
+            const arr = variables[arrayName];
+            if (!Array.isArray(arr)) throw new Error(`"${arrayName}" не является массивом`);
+            if (!Number.isInteger(index) || index < 0 || index >= arr.length) 
+                throw new Error(`Индекс ${index} вне допустимого диапазона для массива "${arrayName}"`);
+            stack.push(arr[index]);
+        } else if (token in operations) {
                 if (stack.length < 2) throw new Error("Слишком мало операндов!");
                 const b = stack.pop();
                 const a = stack.pop();
+                if (typeof a !== 'number' || typeof b !== 'number') 
+                    throw new Error("Операнды должны быть числами");
                 let result;
                 switch (token) {
                     case '+': result = a + b; break;
@@ -375,13 +440,50 @@ document.addEventListener('DOMContentLoaded', function() {
                                 throw new Error(`Не получилось посчитать...  ${result}`);
                             }
                             variables[targetVar] = result;
+                        } else if (type === 'declare-array') {
+                        const arrayName = inputs[0].value.trim();
+                        const sizeStr = inputs[1].value.trim();
+                        if (!arrayName) throw new Error('Укажите имя массива');
+                        const validInput = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+                        if (!validInput.test(arrayName)) {
+                            throw new Error(`Некорректное имя массива "${arrayName}"`);
                         }
+                        if (!/^\d+$/.test(sizeStr)) {
+                            throw new Error(`Размер массива должен быть целым положительным числом, получено "${sizeStr}"`);
+                        }
+                        const size = parseInt(sizeStr, 10);
+                        if (size <= 0) throw new Error('Размер массива должен быть больше 0');
+                        if (arrayName in variables) {
+                            throw new Error(`Переменная с именем "${arrayName}" уже существует`);
+                        }
+                        variables[arrayName] = new Array(size).fill(0);
+                    } else if (type === 'array-assign') {
+                        const arrayName = inputs[0].value.trim();
+                        const indexExpr = inputs[1].value.trim();
+                        const valueExpr = inputs[2].value.trim();
+                        if (!arrayName || !indexExpr || !valueExpr) {
+                            throw new Error('Заполните все поля: имя массива, индекс и значение');
+                        }
+                        if (!(arrayName in variables)) {
+                            throw new Error(`Массив "${arrayName}" не объявлен`);
+                        }
+                        const arr = variables[arrayName];
+                        if (!Array.isArray(arr)) {
+                            throw new Error(`"${arrayName}" не является массивом`);
+                        }
+                        const index = calculateExpression(indexExpr, variables);
+                        if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
+                            throw new Error(`Индекс ${index} вне допустимого диапазона (0..${arr.length-1})`);
+                        }
+                        const value = calculateExpression(valueExpr, variables);
+                        arr[index] = value;
+                    }
                     }
                 }
                 catch (e) {
                     block.classList.add('error');
                     output.style.color = 'red';
-                    output.textContent = `Ошибка тут: ${e.message}`;
+                    output.textContent = `Ошибка: ${e.message}`;
                     return false;
                 }
             }
@@ -395,7 +497,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 resultString += 'А где переменные???';
             } else {
                 for (const key of variableKeys) {
-                    resultString += `${key} = ${variables[key]}\n`;
+                    if (Array.isArray(variables[key])) {
+                        resultString += `${key} = [${variables[key].join(', ')}]\n`;
+                    } else {
+                        resultString += `${key} = ${variables[key]}\n`;
+                    }
                 }
             }
             output.textContent = resultString;
