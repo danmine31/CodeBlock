@@ -141,12 +141,28 @@ document.addEventListener('DOMContentLoaded', function() {
             headerDiv.appendChild(select);
             headerDiv.appendChild(input2);
 
-            const nestedContainer = document.createElement('div');
-            nestedContainer.classList.add('nested-blocks-container');
+            const thenContainer = document.createElement('div');
+            thenContainer.classList.add('nested-blocks-container');
+            thenContainer.dataset.containerType = 'then';
+
+            const elseLabel = document.createElement('div');
+            elseLabel.style.display = 'flex';
+            elseLabel.style.alignItems = 'center';
+            elseLabel.style.gap = '10px';
+            
+            const text2 = document.createElement('span');
+            text2.textContent = 'Иначе:';
+            elseLabel.appendChild(text2);
+            
+            const elseContainer = document.createElement('div');
+            elseContainer.classList.add('nested-blocks-container', 'else-container');
+            elseContainer.dataset.containerType = 'else';
 
             block.innerHTML = '';
             block.appendChild(headerDiv);
-            block.appendChild(nestedContainer);
+            block.appendChild(thenContainer);
+            block.appendChild(elseLabel);
+            block.appendChild(elseContainer);
         }
 
         block.addEventListener('dragstart', function(e) {
@@ -293,9 +309,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         else if (operator === '<=') conditionMet = val1 <= val2;
 
                         if (conditionMet) {
-                            const nestedContainer = block.querySelector('.nested-blocks-container');
-                            if (nestedContainer) {
-                                const success = executeSequence(nestedContainer.children);
+                            const thenContainer = block.querySelector('[data-container-type="then"]');
+                            if (thenContainer) {
+                                const success = executeSequence(thenContainer.children);
+                                if (!success) return false;
+                            }
+                        } else {
+                            const elseContainer = block.querySelector('[data-container-type="else"]');
+                            if (elseContainer && elseContainer.children.length > 0) {
+                                const success = executeSequence(elseContainer.children);
                                 if (!success) return false;
                             }
                         }

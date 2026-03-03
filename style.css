@@ -102,3 +102,8 @@ body {
     transform: scale(0.95);
     margin-left: -10px;
 }
+
+.else-container {
+    background-color: #fff0f0;
+    border: 1px dashed #e4a0a0;
+}
