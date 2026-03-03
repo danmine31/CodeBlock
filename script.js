@@ -136,33 +136,46 @@ document.addEventListener('DOMContentLoaded', function() {
             const input2 = document.createElement('input');
             input2.placeholder = 'выражение 2';
 
+            const toggleElseBtn = document.createElement('button');
+            toggleElseBtn.classList.add('toggle-else-btn');
+            toggleElseBtn.textContent = '+ иначе';
+            
             headerDiv.appendChild(text1);
             headerDiv.appendChild(input1);
             headerDiv.appendChild(select);
             headerDiv.appendChild(input2);
+            headerDiv.appendChild(toggleElseBtn);
 
             const thenContainer = document.createElement('div');
-            thenContainer.classList.add('nested-blocks-container');
+            thenContainer.classList.add('nested-blocks-container', 'then-container');
             thenContainer.dataset.containerType = 'then';
-
-            const elseLabel = document.createElement('div');
-            elseLabel.style.display = 'flex';
-            elseLabel.style.alignItems = 'center';
-            elseLabel.style.gap = '10px';
-            
-            const text2 = document.createElement('span');
-            text2.textContent = 'Иначе:';
-            elseLabel.appendChild(text2);
-            
-            const elseContainer = document.createElement('div');
-            elseContainer.classList.add('nested-blocks-container', 'else-container');
-            elseContainer.dataset.containerType = 'else';
 
             block.innerHTML = '';
             block.appendChild(headerDiv);
             block.appendChild(thenContainer);
-            block.appendChild(elseLabel);
-            block.appendChild(elseContainer);
+            
+            toggleElseBtn.addEventListener('click', function() {
+                const existingLabel = block.querySelector('.else-label');
+                const existingContainer = block.querySelector('.else-container');
+
+                if (!existingLabel) {
+                    const elseLabel = document.createElement('div');
+                    elseLabel.classList.add('else-label');
+                    elseLabel.textContent = 'Иначе:';
+
+                    const elseContainer = document.createElement('div');
+                    elseContainer.classList.add('nested-blocks-container', 'else-container');
+                    elseContainer.dataset.containerType = 'else';
+
+                    block.appendChild(elseLabel);
+                    block.appendChild(elseContainer);
+                    toggleElseBtn.textContent = '- иначе';
+                } else {
+                    existingLabel.remove();
+                    existingContainer.remove();
+                    toggleElseBtn.textContent = '+ иначе';
+                }
+            });
         }
 
         block.addEventListener('dragstart', function(e) {
@@ -274,7 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const variables = {};
         const allBlocks = canvas.querySelectorAll('.block');
         output.textContent = '';
-        output.style.color = 'black';
+        output.style.color = 'white';
         allBlocks.forEach(b => b.classList.remove('error'));
 
         function executeSequence(blocks) {
