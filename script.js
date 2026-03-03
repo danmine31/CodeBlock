@@ -211,6 +211,53 @@ document.addEventListener('DOMContentLoaded', function() {
             block.appendChild(input2);
             block.appendChild(text3);
             block.appendChild(input3);
+        } else if (type === 'while' || type === 'for') {
+            block.classList.add(type === 'while' ? 'while-block' : 'for-block');
+            block.style.flexDirection = 'column';
+            block.style.alignItems = 'stretch';
+
+            const headerDiv = document.createElement('div');
+            headerDiv.style.display = 'flex';
+            headerDiv.style.alignItems = 'center';
+            headerDiv.style.gap = '10px';
+            headerDiv.appendChild(deleteBtn);
+
+            if (type === 'while') {
+                const text = document.createElement('span');
+                text.textContent = 'Пока ';
+                const input1 = document.createElement('input');
+                input1.placeholder = 'выраж 1';
+                const select = document.createElement('select');
+                ['>', '<', '==', '!=', '>=', '<='].forEach(op => {
+                    const opt = document.createElement('option');
+                    opt.value = op;
+                    opt.textContent = op;
+                    select.appendChild(opt);
+                });
+                const input2 = document.createElement('input');
+                input2.placeholder = 'выраж 2';
+                headerDiv.append(text, input1, select, input2);
+            } else {
+                const text1 = document.createElement('span');
+                text1.textContent = 'Для ';
+                const inputVar = document.createElement('input');
+                inputVar.placeholder = 'i';
+                const text2 = document.createElement('span');
+                text2.textContent = ' от ';
+                const inputFrom = document.createElement('input');
+                inputFrom.placeholder = '0';
+                const text3 = document.createElement('span');
+                text3.textContent = ' до ';
+                const inputTo = document.createElement('input');
+                inputTo.placeholder = '10';
+                headerDiv.append(text1, inputVar, text2, inputFrom, text3, inputTo);
+            }
+
+            const nestedContainer = document.createElement('div');
+            nestedContainer.classList.add('nested-blocks-container');
+            block.innerHTML = '';
+            block.appendChild(headerDiv);
+            block.appendChild(nestedContainer);
         }
 
         block.addEventListener('dragstart', function(e) {
@@ -481,7 +528,45 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         const value = calculateExpression(valueExpr, variables);
                         arr[index] = value;
-                    }
+                    } else if (type === 'while') {
+                            const header = block.firstElementChild;
+                            const inputs = header.querySelectorAll('input');
+                            const operator = header.querySelector('select').value;
+                            const nested = block.querySelector('.nested-blocks-container');
+
+                            const checkCondition = () => {
+                                const v1 = calculateExpression(inputs[0].value.trim(), variables);
+                                const v2 = calculateExpression(inputs[1].value.trim(), variables);
+                                if (operator === '>') return v1 > v2;
+                                if (operator === '<') return v1 < v2;
+                                if (operator === '==') return v1 === v2;
+                                if (operator === '!=') return v1 !== v2;
+                                if (operator === '>=') return v1 >= v2;
+                                if (operator === '<=') return v1 <= v2;
+                                return false;
+                            };
+
+                            let iterations = 0;
+                            while (checkCondition()) {
+                                if (!executeSequence(nested.children)) return false;
+                                iterations++;
+                                if (iterations > 1000) throw new Error("Похоже, цикл WHILE зациклился (больше 1000 итераций)!");
+                            }
+                        } else if (type === 'for') {
+                            const header = block.firstElementChild;
+                            const inputs = header.querySelectorAll('input');
+                            const varName = inputs[0].value.trim();
+                            const startVal = calculateExpression(inputs[1].value.trim(), variables);
+                            const endVal = calculateExpression(inputs[2].value.trim(), variables);
+                            const nested = block.querySelector('.nested-blocks-container');
+
+                            if (!(varName in variables)) throw new Error(`Переменная "${varName}" не объявлена для цикла FOR`);
+
+                            for (let i = startVal; i <= endVal; i++) {
+                                variables[varName] = i;
+                                if (!executeSequence(nested.children)) return false;
+                            }
+                        }
                     }
                 }
                 catch (e) {
