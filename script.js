@@ -352,14 +352,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             const varName = inputs[0].value.trim();
                             const valueStr = inputs[1].value.trim();
                             if (!varName) continue;
+                            
                             if (!(varName in variables)) {
-                                throw new Error(`"${varName}" не объявлена!`);
+                                throw new Error(`"${varName}" не объявлена!`);    
                             }
-                            if (!/^-?\d+$/.test(valueStr)) {
-                                throw new Error(`"${valueStr}" - но это же не целое число!`);
+
+                            if (valueStr in variables) {
+                                variables[varName] = variables[valueStr];
+                            } else if (/^-?\d+$/.test(valueStr)) {
+                                variables[varName] = parseInt(valueStr, 10);
+                            } else {
+                                throw new Error(`Не могу присвоить "${valueStr}!!!". Такой переменной не существует, и это не число`);
                             }
-                            const value = parseInt(valueStr, 10);
-                            variables[varName] = value;
                         } else if (type === 'calculate') {
                             const targetVar = inputs[0].value.trim();
                             const expression = inputs[1].value.trim();
