@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const toggleElseBtn = document.createElement('button');
             toggleElseBtn.classList.add('toggle-else-btn');
             toggleElseBtn.textContent = '+ иначе';
-            
+
             headerDiv.appendChild(text1);
             headerDiv.appendChild(input1);
             headerDiv.appendChild(select);
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
             block.innerHTML = '';
             block.appendChild(headerDiv);
             block.appendChild(thenContainer);
-            
+
             toggleElseBtn.addEventListener('click', function() {
                 const existingLabel = block.querySelector('.else-label');
                 const existingContainer = block.querySelector('.else-container');
@@ -170,8 +170,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     block.appendChild(elseLabel);
                     block.appendChild(elseContainer);
                     toggleElseBtn.textContent = '- иначе';
-                } 
-                
+                }
+
                 else {
                     existingLabel.remove();
                     existingContainer.remove();
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     function tokenize(str) {
-        const tokens = str.replace(/\s+/g, '').match(/(\d+(\.\d+)?|[a-zA-Z_]\w*|[+\-*/%()])/g);
+        const tokens = str.replace(/\s+/g, '').match(/(\d+(\.\d+)?|[a-zA-Z_]\w*|[+\-*/%()\[\]])/g);
         if (!tokens) throw new Error("Что вы написали? Мы не можем понять(((");
         return tokens;
     }
@@ -294,9 +294,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const token = tokens[i];
             if (!isNaN(token)) {
                 outputQueue.push(parseInt(token, 10));
-            } 
-            else if (token in currentVariables && !Array.isArray(currentVariables[token])) {
-                outputQueue.push(currentVariables[token]);
             }
             else if (/^[a-zA-Z_]\w*$/.test(token)) {
                 outputQueue.push(token);
@@ -308,17 +305,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 while (operatorStack.length > 0 && operatorStack[operatorStack.length-1] !== '[') {
                     outputQueue.push(operatorStack.pop());
                 }
-                if (operatorStack.length === 0) throw new Error("Нет открывающей [");
+                if (operatorStack.length === 0 ) throw new Error("Нет открывающей [");
                 operatorStack.pop();
-                outputQueue.push('[]');
+                outputQueue.push('ARRAY_ACCESS');
             } else if (token in operations) {
                 while (
                     operatorStack.length > 0 &&
                     operatorStack[operatorStack.length - 1] !== '(' &&
                     operatorStack[operatorStack.length - 1] !== '[' &&
                     (operations[operatorStack[operatorStack.length - 1]].priority > operations[token].priority ||
-                    (operations[operatorStack[operatorStack.length - 1]].priority === operations[token].priority && operations[token].associativity === 'LtoR'))
-                ) {
+                        (operations[operatorStack[operatorStack.length - 1]].priority === operations[token].priority && operations[token].associativity === 'LtoR'))
+                    ) {
                     outputQueue.push(operatorStack.pop());
                 }
                 operatorStack.push(token);
@@ -342,30 +339,34 @@ document.addEventListener('DOMContentLoaded', function() {
         return outputQueue;
     }
 
-    function evaluateRPN(rpnQueue) {
+    function evaluateRPN(rpnQueue, currentVariables) {
         let stack = [];
         for (const token of rpnQueue) {
             if (typeof token === 'number') {
                 stack.push(token);
-        } else if (typeof token === 'string' && /^[a-zA-Z_]\w*$/.test(token) && token !== '[]' && !(token in operations)) {
-            stack.push(token);
-        } else if (token === '[]') {
-            if (stack.length < 2) throw new Error("Слишком мало операндов для []");
-            const index = stack.pop();
-            const arrayName = stack.pop();
-            if (typeof index !== 'number') throw new Error(`Индекс должен быть числом, получено ${index}`);
-            if (typeof arrayName !== 'string') throw new Error(`Имя массива должно быть строкой, получено ${arrayName}`);
-            if (!(arrayName in variables)) throw new Error(`Массив "${arrayName}" не объявлен`);
-            const arr = variables[arrayName];
-            if (!Array.isArray(arr)) throw new Error(`"${arrayName}" не является массивом`);
-            if (!Number.isInteger(index) || index < 0 || index >= arr.length) 
-                throw new Error(`Индекс ${index} вне допустимого диапазона для массива "${arrayName}"`);
-            stack.push(arr[index]);
-        } else if (token in operations) {
+            }
+            else if (typeof token === 'string' && !(token in operations) && token !== 'ARRAY_ACCESS') {
+                if (token in currentVariables) {
+                    stack.push(currentVariables[token]);
+                } else {
+                    throw new Error(`Переменная "${token}" не найдена`);
+                }
+            }
+            else if (token === 'ARRAY_ACCESS') {
+                if (stack.length < 2) throw new Error("Слишком мало операндов для доступа к массиву");
+                const index = stack.pop();
+                const arr = stack.pop();
+
+                if (!Array.isArray(arr)) throw new Error(`Попытка доступа по индексу к чему-то, что не является массивом`);
+                if (!Number.isInteger(index) || index < 0 || index >= arr.length)
+                    throw new Error(`Индекс ${index} вне допустимого диапазона для массива`);
+                stack.push(arr[index]);
+            }
+            else if (token in operations) {
                 if (stack.length < 2) throw new Error("Слишком мало операндов!");
                 const b = stack.pop();
                 const a = stack.pop();
-                if (typeof a !== 'number' || typeof b !== 'number') 
+                if (typeof a !== 'number' || typeof b !== 'number')
                     throw new Error("Операнды должны быть числами");
                 let result;
                 switch (token) {
@@ -391,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function calculateExpression(exprStr, currentVariables) {
         const tokens = tokenize(exprStr);
         const rpn = toRPN(tokens, currentVariables);
-        const result = evaluateRPN(rpn);
+        const result = evaluateRPN(rpn, currentVariables);
         return result;
     }
 
@@ -464,9 +465,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             const varName = inputs[0].value.trim();
                             const valueStr = inputs[1].value.trim();
                             if (!varName) continue;
-                            
                             if (!(varName in variables)) {
-                                throw new Error(`"${varName}" не объявлена!`);    
+                                throw new Error(`"${varName}" не объявлена!`);
                             }
 
                             if (valueStr in variables) {
@@ -477,20 +477,44 @@ document.addEventListener('DOMContentLoaded', function() {
                                 throw new Error(`Не могу присвоить "${valueStr}!!!". Такой переменной не существует, и это не число`);
                             }
                         } else if (type === 'calculate') {
-                            const targetVar = inputs[0].value.trim();
-                            const expression = inputs[1].value.trim();
-                            if (!targetVar || !expression) {
-                                throw new Error('Надо переменную для результата и выражение');
-                            }
-                            if (!(targetVar in variables)) {
-                                throw new Error(`Кажется, вы забыли объявить переменную "${targetVar}"`);
-                            }
-                            const result = calculateExpression(expression, variables);
+                            const inputs = block.querySelectorAll('input');
+                            const targetExpr = inputs[0].value.trim();
+                            const valueExpr = inputs[1].value.trim();
 
-                            if (typeof result !== 'number') {
-                                throw new Error(`Не получилось посчитать...  ${result}`);
+                            if (!targetExpr || !valueExpr) {
+                                throw new Error('Надо указа-ть, чему и какое значение присвоить');
                             }
-                            variables[targetVar] = result;
+                            const result = calculateExpression(valueExpr, variables);
+                            const arrayAccessMatch = targetExpr.match(/^([a-zA-Z_]\w*)\[(.+)\]$/);
+
+                            if (arrayAccessMatch) {
+                                const arrayName = arrayAccessMatch[1];
+                                const indexExpr = arrayAccessMatch[2];
+
+                                if (!(arrayName in variables)) {
+                                    throw new Error(`Массив "${arrayName}" не объявлен`);
+                                }
+                                const arr = variables[arrayName];
+                                if (!Array.isArray(arr)) {
+                                    throw new Error(`"${arrayName}" - это не массив`);
+                                }
+
+                                const index = calculateExpression(indexExpr, variables);
+                                if (!Number.isInteger(index) || index < 0 || index >= arr.length) {
+                                    throw new Error(`Индекс ${index} вне допустимого диапазона для массива "${arrayName}"`);
+                                }
+
+                                arr[index] = result;
+                            } else {
+                                if (!(targetExpr in variables)) {
+                                    throw new Error(`Кажется, вы забыли объявить переменную "${targetExpr}"`);
+                                }
+                                if (Array.isArray(variables[targetExpr])) {
+                                    throw new Error(`Нельзя присвоить значение целому массиву "${targetExpr}". Укажите индекс.`);
+                                }
+
+                                variables[targetExpr] = result;
+                            }
                         } else if (type === 'declare-array') {
                         const arrayName = inputs[0].value.trim();
                         const sizeStr = inputs[1].value.trim();
