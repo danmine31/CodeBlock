@@ -7,6 +7,15 @@ export function interpretCode(canvas, outputElement) {
     outputElement.textContent = '';
     outputElement.style.color = 'white';
     allBlocks.forEach(b => b.classList.remove('error'));
+    
+    function executeAssignmentStatement(stmt, vars) {
+        const parts = stmt.split('=');
+        if (parts.length !== 2) throw new Error(`Некорректное выражение: ${stmt}`);
+        const varName = parts[0].trim();
+        const expr = parts[1].trim();
+        if (!(varName in vars)) throw new Error(`Переменная "${varName}" не объявлена`);
+        vars[varName] = calculateExpression(expr, vars);
+    }
 
     function executeSequence(blocks) {
         for (const block of blocks) {
@@ -17,39 +26,18 @@ export function interpretCode(canvas, outputElement) {
 
                 if (type === 'if') {
                     const headerDiv = block.firstElementChild;
-                    const inputs = headerDiv.querySelectorAll('input');
-                    const select = headerDiv.querySelector('select');
+                    const conditionStr = headerDiv.querySelector('input').value.trim();
+                    if (!conditionStr) throw new Error('Пустое условие в IF');
 
-                    const expr1 = inputs[0].value.trim();
-                    const operator = select.value;
-                    const expr2 = inputs[1].value.trim();
-
-                    if (!expr1 || !expr2) {
-                        throw new Error('Напишите два выражения для условия');
-                    }
-
-                    const val1 = calculateExpression(expr1, variables);
-                    const val2 = calculateExpression(expr2, variables);
-
-                    let conditionMet = false;
-                    if (operator === '>') conditionMet = val1 > val2;
-                    else if (operator === '<') conditionMet = val1 < val2;
-                    else if (operator === '==') conditionMet = val1 === val2;
-                    else if (operator === '!=') conditionMet = val1 !== val2;
-                    else if (operator === '>=') conditionMet = val1 >= val2;
-                    else if (operator === '<=') conditionMet = val1 <= val2;
-
+                    const conditionMet = calculateExpression(conditionStr, variables);
+    
                     if (conditionMet) {
                         const thenContainer = block.querySelector('[data-container-type="then"]');
-                        if (thenContainer) {
-                            const success = executeSequence(thenContainer.children);
-                            if (!success) return false;
-                        }
+                        if (thenContainer && !executeSequence(thenContainer.children)) return false;
                     } else {
                         const elseContainer = block.querySelector('[data-container-type="else"]');
                         if (elseContainer && elseContainer.children.length > 0) {
-                            const success = executeSequence(elseContainer.children);
-                            if (!success) return false;
+                            if (!executeSequence(elseContainer.children)) return false;
                         }
                     }
                 } else {
@@ -159,21 +147,10 @@ export function interpretCode(canvas, outputElement) {
                         arr[index] = value;
                     } else if (type === 'while') {
                         const header = block.firstElementChild;
-                        const inputs = header.querySelectorAll('input');
-                        const operator = header.querySelector('select').value;
-                        const nested = block.querySelector('.nested-blocks-container');
+                        const conditionStr = header.querySelector('input').value.trim();
+                        const checkCondition = () => calculateExpression(conditionStr, variables);
 
-                        const checkCondition = () => {
-                            const v1 = calculateExpression(inputs[0].value.trim(), variables);
-                            const v2 = calculateExpression(inputs[1].value.trim(), variables);
-                            if (operator === '>') return v1 > v2;
-                            if (operator === '<') return v1 < v2;
-                            if (operator === '==') return v1 === v2;
-                            if (operator === '!=') return v1 !== v2;
-                            if (operator === '>=') return v1 >= v2;
-                            if (operator === '<=') return v1 <= v2;
-                            return false;
-                        };
+                        const nested = block.querySelector('.nested-blocks-container');
 
                         let iterations = 0;
                         while (checkCondition()) {
@@ -182,19 +159,32 @@ export function interpretCode(canvas, outputElement) {
                             if (iterations > 1000) throw new Error("Похоже, цикл WHILE зациклился (больше 1000 итераций)!");
                         }
                     } else if (type === 'for') {
-                        const header = block.firstElementChild;
-                        const inputs = header.querySelectorAll('input');
-                        const varName = inputs[0].value.trim();
-                        const startVal = calculateExpression(inputs[1].value.trim(), variables);
-                        const endVal = calculateExpression(inputs[2].value.trim(), variables);
+                        const initStmt = inputs[0].value.trim();
+                        const conditionExpr = inputs[1].value.trim();
+                        const updateStmt = inputs[2].value.trim();
                         const nested = block.querySelector('.nested-blocks-container');
 
-                        if (!(varName in variables)) throw new Error(`Переменная "${varName}" не объявлена для цикла FOR`);
-
-                        for (let i = startVal; i <= endVal; i++) {
-                            variables[varName] = i;
-                            if (!executeSequence(nested.children)) return false;
+                        if (initStmt) {
+                            executeAssignmentStatement(initStmt, variables);
                         }
+
+                        let iterations = 0;
+                        while (true) {
+                            if (iterations++ > 2000) throw new Error("Цикл FOR зациклился (больше 2000 итераций)!");
+
+                            let conditionMet = true;
+                            if (conditionExpr) {
+                                conditionMet = calculateExpression(conditionExpr, variables);
+                                if (typeof conditionMet !== 'boolean') throw new Error('Условие FOR должно быть булевым.');
+                            }
+                            if (!conditionMet) break;
+
+                            if (!executeSequence(nested.children)) return false;
+
+                            if (updateStmt) {
+                                executeAssignmentStatement(updateStmt, variables);
+                            }
+                        } 
                     }
                 }
             } catch (e) {

@@ -168,18 +168,8 @@ export function createBlockElement(type) {
         const text1 = document.createElement('span');
         text1.textContent = 'Если ';
         const input1 = document.createElement('input');
-        input1.placeholder = 'выражение 1';
-
-        const select = document.createElement('select');
-        ['>', '<', '==', '!=', '>=', '<='].forEach(op => {
-            const option = document.createElement('option');
-            option.value = op;
-            option.textContent = op;
-            select.appendChild(option);
-        });
-
-        const input2 = document.createElement('input');
-        input2.placeholder = 'выражение 2';
+        input1.placeholder = '(a > 5) AND (b < 10)';
+        input1.style.flexGrow = '1';
 
         const toggleElseBtn = document.createElement('button');
         toggleElseBtn.classList.add('toggle-else-btn');
@@ -187,8 +177,6 @@ export function createBlockElement(type) {
 
         headerDiv.appendChild(text1);
         headerDiv.appendChild(input1);
-        headerDiv.appendChild(select);
-        headerDiv.appendChild(input2);
         headerDiv.appendChild(toggleElseBtn);
 
         const thenContainer = document.createElement('div');
@@ -270,31 +258,32 @@ export function createBlockElement(type) {
             const text = document.createElement('span');
             text.textContent = 'Пока ';
             const input1 = document.createElement('input');
-            input1.placeholder = 'выраж 1';
-            const select = document.createElement('select');
-            ['>', '<', '==', '!=', '>=', '<='].forEach(op => {
-                const opt = document.createElement('option');
-                opt.value = op;
-                opt.textContent = op;
-                select.appendChild(opt);
-            });
-            const input2 = document.createElement('input');
-            input2.placeholder = 'выраж 2';
-            headerDiv.append(text, input1, select, input2);
+            input1.placeholder = 'i < 100 AND flag == 1';
+            input1.style.flexGrow = '1';
+            headerDiv.append(text, input1);
         } else {
             const text1 = document.createElement('span');
-            text1.textContent = 'Для ';
-            const inputVar = document.createElement('input');
-            inputVar.placeholder = 'i';
+            text1.textContent = 'Для (';
+            const initInput = document.createElement('input');
+            initInput.placeholder = 'i = 0';
+            initInput.title = 'Инициализация';
             const text2 = document.createElement('span');
-            text2.textContent = ' от ';
-            const inputFrom = document.createElement('input');
-            inputFrom.placeholder = '0';
+            text2.textContent = ';';
+            const conditionInput = document.createElement('input');
+            conditionInput.placeholder = 'i < 10';
+            conditionInput.title = 'Условие';
             const text3 = document.createElement('span');
-            text3.textContent = ' до ';
-            const inputTo = document.createElement('input');
-            inputTo.placeholder = '10';
-            headerDiv.append(text1, inputVar, text2, inputFrom, text3, inputTo);
+            text3.textContent = ';';
+            const updateInput = document.createElement('input');
+            updateInput.placeholder = 'i = i + 1';
+            updateInput.title = 'Инкремент';
+            const text4 = document.createElement('span');
+            text4.textContent = ')';
+            [initInput, conditionInput, updateInput].forEach(input => {
+                input.style.flex = '1';
+                input.style.minWidth = '60px';
+            });
+            headerDiv.append(text1, initInput, text2, conditionInput, text3, updateInput, text4);
         }
 
         const nestedContainer = document.createElement('div');

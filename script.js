@@ -123,18 +123,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const text1 = document.createElement('span');
             text1.textContent = 'Если ';
             const input1 = document.createElement('input');
-            input1.placeholder = 'выражение 1';
-
-            const select = document.createElement('select');
-            ['>', '<', '==', '!=', '>=', '<='].forEach(op => {
-                const option = document.createElement('option');
-                option.value = op;
-                option.textContent = op;
-                select.appendChild(option);
-            });
-
-            const input2 = document.createElement('input');
-            input2.placeholder = 'выражение 2';
+            input1.placeholder = '(a > 5) AND (b < 10)';
+            input1.style.flexGrow = '1';
 
             const toggleElseBtn = document.createElement('button');
             toggleElseBtn.classList.add('toggle-else-btn');
@@ -142,8 +132,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             headerDiv.appendChild(text1);
             headerDiv.appendChild(input1);
-            headerDiv.appendChild(select);
-            headerDiv.appendChild(input2);
             headerDiv.appendChild(toggleElseBtn);
 
             const thenContainer = document.createElement('div');
@@ -226,31 +214,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 const text = document.createElement('span');
                 text.textContent = 'Пока ';
                 const input1 = document.createElement('input');
-                input1.placeholder = 'выраж 1';
-                const select = document.createElement('select');
-                ['>', '<', '==', '!=', '>=', '<='].forEach(op => {
-                    const opt = document.createElement('option');
-                    opt.value = op;
-                    opt.textContent = op;
-                    select.appendChild(opt);
-                });
-                const input2 = document.createElement('input');
-                input2.placeholder = 'выраж 2';
-                headerDiv.append(text, input1, select, input2);
+                input1.placeholder = 'i < 100 AND flag == 1';
+                input1.style.flexGrow = '1';
+                headerDiv.append(text, input1);
             } else {
                 const text1 = document.createElement('span');
-                text1.textContent = 'Для ';
-                const inputVar = document.createElement('input');
-                inputVar.placeholder = 'i';
+                text1.textContent = 'Для (';
+                const initInput = document.createElement('input');
+                initInput.placeholder = 'i = 0';
+                initInput.title = 'Инициализация';
                 const text2 = document.createElement('span');
-                text2.textContent = ' от ';
-                const inputFrom = document.createElement('input');
-                inputFrom.placeholder = '0';
+                text2.textContent = ';';
+                const conditionInput = document.createElement('input');
+                conditionInput.placeholder = 'i < 10';
+                conditionInput.title = 'Условие';
                 const text3 = document.createElement('span');
-                text3.textContent = ' до ';
-                const inputTo = document.createElement('input');
-                inputTo.placeholder = '10';
-                headerDiv.append(text1, inputVar, text2, inputFrom, text3, inputTo);
+                text3.textContent = ';';
+                const updateInput = document.createElement('input');
+                updateInput.placeholder = 'i = i + 1';
+                updateInput.title = 'Инкремент';
+                const text4 = document.createElement('span');
+                text4.textContent = ')';
+                [initInput, conditionInput, updateInput].forEach(input => {
+                    input.style.flex = '1';
+                    input.style.minWidth = '60px';
+                });
+                headerDiv.append(text1, initInput, text2, conditionInput, text3, updateInput, text4);
             }
 
             const nestedContainer = document.createElement('div');
@@ -274,51 +263,63 @@ document.addEventListener('DOMContentLoaded', function() {
     runButton.addEventListener('click', interpretCode);
 
     const operations = {
-        '+': { priority: 1, associativity: 'LtoR' },
-        '-': { priority: 1, associativity: 'LtoR' },
-        '*': { priority: 2, associativity: 'LtoR' },
-        '/': { priority: 2, associativity: 'LtoR' },
-        '%': { priority: 2, associativity: 'LtoR' },
-        '[]': { priority: 3, associativity: 'LtoR' }
+        '+': { priority: 4, associativity: 'L', type: 'binary' },
+        '-': { priority: 4, associativity: 'L', type: 'binary' },
+        '*': { priority: 5, associativity: 'L', type: 'binary' },
+        '/': { priority: 5, associativity: 'L', type: 'binary' },
+        '%': { priority: 5, associativity: 'L', type: 'binary' },
+        '>': { priority: 3, associativity: 'L', type: 'binary' },
+        '<': { priority: 3, associativity: 'L', type: 'binary' },
+        '>=': { priority: 3, associativity: 'L', type: 'binary' },
+        '<=': { priority: 3, associativity: 'L', type: 'binary' },
+        '==': { priority: 3, associativity: 'L', type: 'binary' },
+        '!=': { priority: 3, associativity: 'L', type: 'binary' },
+        'AND': { priority: 2, associativity: 'L', type: 'binary' },
+        'OR': { priority: 1, associativity: 'L', type: 'binary' },
+        'NOT': { priority: 6, associativity: 'R', type: 'unary' },
     };
 
     function tokenize(str) {
-        const tokens = str.replace(/\s+/g, '').match(/(\d+(\.\d+)?|[a-zA-Z_]\w*|[+\-*/%()]|\[|\])/g);
-        if (!tokens) throw new Error("Что вы написали? Мы не можем понять(((");
-        return tokens;
+        const regex = /\d+(\.\d+)?|\b(true|false|AND|OR|NOT)\b|[a-zA-Z_]\w*|>=|<=|==|!=|[()\[\]+\-*/%><]/gi;
+        const tokens = str.match(regex);
+        if (!tokens) return [];
+        return tokens.map(t => {
+            const upper = t.toUpperCase();
+            if (operations[upper] || upper === 'TRUE' || upper === 'FALSE') {
+                return upper;
+            }
+            return t;
+        });
     }
 
-    function toRPN(tokens, currentVariables) {
+    function toRPN(tokens) {
         let outputQueue = [];
         let operatorStack = [];
-        for (let i = 0; i < tokens.length; i++) {
-            const token = tokens[i];
+        let lastToken = null;
+        for (const token of tokens) {
             if (!isNaN(token)) {
-                outputQueue.push(parseInt(token, 10));
-            } 
-            else if (token in currentVariables && !Array.isArray(currentVariables[token])) {
-                outputQueue.push(currentVariables[token]);
-            }
-            else if (/^[a-zA-Z_]\w*$/.test(token)) {
+                outputQueue.push(parseFloat(token));
+            } else if (token === 'TRUE' || token === 'FALSE') {
+                outputQueue.push(token === 'TRUE');
+            } else if (/^[a-zA-Z_]\w*$/.test(token) && !operations[token]) {
                 outputQueue.push(token);
-            }
-            else if (token === '[') {
+            } else if (token === '[') {
                 operatorStack.push(token);
-            }
-            else if (token === ']') {
-                while (operatorStack.length > 0 && operatorStack[operatorStack.length-1] !== '[') {
+            } else if (token === ']') {
+                while (operatorStack.length > 0 && operatorStack[operatorStack.length - 1] !== '[') {
                     outputQueue.push(operatorStack.pop());
                 }
-                if (operatorStack.length === 0) throw new Error("Нет открывающей [");
+                if (operatorStack.length === 0) throw new Error("Нет открывающей скобки '['");
                 operatorStack.pop();
-                outputQueue.push('[]');
-            } else if (token in operations) {
+                outputQueue.push('ARRAY_ACCESS');
+            } else if (operations[token]) {
+                const op = operations[token];
                 while (
                     operatorStack.length > 0 &&
                     operatorStack[operatorStack.length - 1] !== '(' &&
                     operatorStack[operatorStack.length - 1] !== '[' &&
-                    (operations[operatorStack[operatorStack.length - 1]].priority > operations[token].priority ||
-                    (operations[operatorStack[operatorStack.length - 1]].priority === operations[token].priority && operations[token].associativity === 'LtoR'))
+                    (operations[operatorStack[operatorStack.length - 1]].priority > op.priority ||
+                        (operations[operatorStack[operatorStack.length - 1]].priority === op.priority && op.associativity === 'L'))
                 ) {
                     outputQueue.push(operatorStack.pop());
                 }
@@ -332,8 +333,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (operatorStack.length === 0) throw new Error("Не для всех скобочек есть пара");
                 operatorStack.pop();
             } else {
-                throw new Error(` "${token}" - это что!?!`);
+                throw new Error(`Неизвестный токен: "${token}"`);
             }
+            lastToken = token;
         }
         while (operatorStack.length > 0) {
             const op = operatorStack.pop();
@@ -343,46 +345,67 @@ document.addEventListener('DOMContentLoaded', function() {
         return outputQueue;
     }
 
-    function evaluateRPN(rpnQueue) {
+    function evaluateRPN(rpnQueue, currentVariables) {
         let stack = [];
         for (const token of rpnQueue) {
-            if (typeof token === 'number') {
+            if (typeof token === 'number' || typeof token === 'boolean') {
                 stack.push(token);
-        } else if (typeof token === 'string' && /^[a-zA-Z_]\w*$/.test(token) && token !== '[]' && !(token in operations)) {
-            stack.push(token);
-        } else if (token === '[]') {
-            if (stack.length < 2) throw new Error("Слишком мало операндов для []");
-            const index = stack.pop();
-            const arrayName = stack.pop();
-            if (typeof index !== 'number') throw new Error(`Индекс должен быть числом, получено ${index}`);
-            if (typeof arrayName !== 'string') throw new Error(`Имя массива должно быть строкой, получено ${arrayName}`);
-            if (!(arrayName in variables)) throw new Error(`Массив "${arrayName}" не объявлен`);
-            const arr = variables[arrayName];
-            if (!Array.isArray(arr)) throw new Error(`"${arrayName}" не является массивом`);
-            if (!Number.isInteger(index) || index < 0 || index >= arr.length) 
-                throw new Error(`Индекс ${index} вне допустимого диапазона для массива "${arrayName}"`);
-            stack.push(arr[index]);
-        } else if (token in operations) {
-                if (stack.length < 2) throw new Error("Слишком мало операндов!");
-                const b = stack.pop();
-                const a = stack.pop();
-                if (typeof a !== 'number' || typeof b !== 'number') 
-                    throw new Error("Операнды должны быть числами");
-                let result;
-                switch (token) {
-                    case '+': result = a + b; break;
-                    case '-': result = a - b; break;
-                    case '*': result = a * b; break;
-                    case '/':
-                        if (b === 0) throw new Error("Делить на ноль НЕЛЬЗЯ!");
-                        result = Math.trunc(a / b);
-                        break;
-                    case '%':
-                        if (b === 0) throw new Error("Деление на ноль НЕЛЬЗЯ (остаток)!");
-                        result = a % b;
-                        break;
+            } else if (typeof token === 'string' && !operations[token] && token !== 'ARRAY_ACCESS') {
+                if (token in currentVariables) {
+                    stack.push(currentVariables[token]);
+                } else {
+                    throw new Error(`Переменная "${token}" не найдена`);
                 }
-                stack.push(result);
+            } else if (token === 'ARRAY_ACCESS') {
+                if (stack.length < 2) throw new Error("Слишком мало операндов для доступа к массиву");
+                const index = stack.pop();
+                const arr = stack.pop();
+    
+                if (!Array.isArray(arr)) throw new Error(`Попытка доступа по индексу к переменной, которая не является массивом`);
+                if (!Number.isInteger(index) || index < 0 || index >= arr.length)
+                    throw new Error(`Индекс ${index} вне допустимого диапазона для массива`);
+                stack.push(arr[index]);
+            } else if (operations[token]) {
+                const op = operations[token];
+                if (op.type === 'unary') {
+                    if (stack.length < 1) throw new Error(`Мало операндов для унарного оператора ${token}`);
+                    const a = stack.pop();
+                    if (typeof a !== 'boolean') throw new Error(`Оператор ${token} применим только к булевым значениям`);
+                    stack.push(!a);
+                } else {
+                    if (stack.length < 2) throw new Error(`Мало операндов для бинарного оператора ${token}`);
+                    const b = stack.pop();
+                    const a = stack.pop();
+                    let result;
+                    switch (token) {
+                        case '+': result = a + b; break;
+                        case '-': result = a - b; break;
+                        case '*': result = a * b; break;
+                        case '/':
+                            if (b === 0) throw new Error("Делить на ноль НЕЛЬЗЯ!");
+                            result = Math.trunc(a / b);
+                            break;
+                        case '%':
+                            if (b === 0) throw new Error("Деление на ноль НЕЛЬЗЯ (остаток)!");
+                            result = a % b;
+                            break;
+                        case '>': result = a > b; break;
+                        case '<': result = a < b; break;
+                        case '>=': result = a >= b; break;
+                        case '<=': result = a <= b; break;
+                        case '==': result = a === b; break;
+                        case '!=': result = a !== b; break;
+                        case 'AND':
+                            if (typeof a !== 'boolean' || typeof b !== 'boolean') throw new Error("AND требует булевы операнды");
+                            result = a && b;
+                            break;
+                        case 'OR':
+                            if (typeof a !== 'boolean' || typeof b !== 'boolean') throw new Error("OR требует булевы операнды");
+                            result = a || b;
+                            break;
+                    }
+                    stack.push(result);
+                }
             }
         }
         if (stack.length !== 1) throw new Error("Что-то не так с синтаксисом...");
@@ -423,16 +446,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             throw new Error('Напишите два выражения для условия');
                         }
 
-                        const val1 = calculateExpression(expr1, variables);
-                        const val2 = calculateExpression(expr2, variables);
-
-                        let conditionMet = false;
-                        if (operator === '>') conditionMet = val1 > val2;
-                        else if (operator === '<') conditionMet = val1 < val2;
-                        else if (operator === '==') conditionMet = val1 === val2;
-                        else if (operator === '!=') conditionMet = val1 !== val2;
-                        else if (operator === '>=') conditionMet = val1 >= val2;
-                        else if (operator === '<=') conditionMet = val1 <= val2;
+                        const conditionStr = inputs[0].value.trim();
+                        const conditionMet = evaluateExpression(conditionStr, variables);
+                        if (typeof conditionMet !== 'boolean') {
+                            throw new Error('Условие IF должно возвращать true или false.');
+                        }
 
                         if (conditionMet) {
                             const thenContainer = block.querySelector('[data-container-type="then"]');
@@ -554,19 +572,32 @@ document.addEventListener('DOMContentLoaded', function() {
                                 if (iterations > 1000) throw new Error("Похоже, цикл WHILE зациклился (больше 1000 итераций)!");
                             }
                         } else if (type === 'for') {
-                            const header = block.firstElementChild;
-                            const inputs = header.querySelectorAll('input');
-                            const varName = inputs[0].value.trim();
-                            const startVal = calculateExpression(inputs[1].value.trim(), variables);
-                            const endVal = calculateExpression(inputs[2].value.trim(), variables);
+                            const initStmt = inputs[0].value.trim();
+                            const conditionExpr = inputs[1].value.trim();
+                            const updateStmt = inputs[2].value.trim();
                             const nested = block.querySelector('.nested-blocks-container');
 
-                            if (!(varName in variables)) throw new Error(`Переменная "${varName}" не объявлена для цикла FOR`);
-
-                            for (let i = startVal; i <= endVal; i++) {
-                                variables[varName] = i;
-                                if (!executeSequence(nested.children)) return false;
+                            if (initStmt) {
+                                executeAssignmentStatement(initStmt, variables);
                             }
+
+                            let iterations = 0;
+                            while (true) {
+                                if (iterations++ > 2000) throw new Error("Цикл FOR зациклился (больше 2000 итераций)!");
+
+                                let conditionMet = true;
+                                if (conditionExpr) {
+                                    conditionMet = evaluateExpression(conditionExpr, variables);
+                                    if (typeof conditionMet !== 'boolean') throw new Error('Условие FOR должно быть булевым.');
+                                }
+                                if (!conditionMet) break;
+
+                                if (!executeSequence(nested.children)) return false;
+
+                                if (updateStmt) {
+                                    executeAssignmentStatement(updateStmt, variables);
+                                }
+                            }    
                         }
                     }
                 }
