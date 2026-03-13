@@ -19,9 +19,12 @@
             <div class="block-template for" draggable="true" data-block-type="for">Цикл FOR</div>
             <hr/>
             <button id="run-button">Выполнить</button>
-            <button id="export-btn">Экспорт (JSON)</button>
-            <label for="import-input" style="cursor: pointer; border: 1px solid #ccc; padding: 5px;">Импорт (JSON)</label>
-            <input type="file" id="import-input" accept=".json" style="display: none;">
+            <div class="toolbar-buttons-row">
+                <button id="export-btn">Экспорт (JSON)</button>
+                <label for="import-input" style="cursor: pointer; border: 1px solid #ccc; padding: 5px;">Импорт (JSON)</label>
+                <input type="file" id="import-input" accept=".json" style="display: none;">
+                <button id="clear-btn" title="Очистить всё">🗑</button>
+            </div>
         </div>
         <div class="canvas-wrapper">
              <h3 class="workspace">Рабочая область</h3>

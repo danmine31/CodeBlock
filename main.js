@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.querySelector('.canvas');
     const templates = document.querySelectorAll('.block-template');
     const runButton = document.getElementById('run-button');
+    const clearButton = document.getElementById('clear-btn');
     const output = document.querySelector('.output');
 
     let draggingElement = null;
@@ -16,6 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     runButton.addEventListener('click', () => {
         interpretCode(canvas, output);
+    });
+
+    clearButton.addEventListener('click', () => {
+        canvas.innerHTML = '';
+        output.textContent = '';
     });
 
     const exportBtn = document.getElementById('export-btn');
