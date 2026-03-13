@@ -16,7 +16,7 @@ export const operations = {
 };
 
 export function tokenize(str) {
-    const regex = /\d+(\.\d+)?|\b(true|false|AND|OR|NOT)\b|[a-zA-Z_]\w*|>=|<=|==|!=|[()\[\]+\-*/%><]/gi;
+    const regex = /"[^"]*"|\d+(\.\d+)?|\b(true|false|AND|OR|NOT)\b|[a-zA-Z_]\w*|>=|<=|==|!=|[()\[\]+\-*/%><]/gi;
     const tokens = str.match(regex);
     if (!tokens) return [];
     return tokens.map(t => {
@@ -33,6 +33,10 @@ export function toRPN(tokens) {
     let operatorStack = [];
     let lastToken = null;
     for (const token of tokens) {
+        if (token.startsWith('"') && token.endsWith('"')) {
+            outputQueue.push(token);
+            continue;
+        }
         if (!isNaN(token)) {
             outputQueue.push(parseFloat(token));
         } else if (token === 'TRUE' || token === 'FALSE') {
@@ -87,10 +91,12 @@ export function evaluateRPN(rpnQueue, currentVariables) {
         if (typeof token === 'number' || typeof token === 'boolean') {
             stack.push(token);
         } else if (typeof token === 'string' && !operations[token] && token !== 'ARRAY_ACCESS') {
-            if (token in currentVariables) {
+            if (token.startsWith('"') && token.endsWith('"')) {
+                stack.push(token.slice(1, -1));
+            } else if (token in currentVariables) {
                 stack.push(currentVariables[token]);
             } else {
-                throw new Error(`Переменная "${token}" не найдена`);
+                throw new Error(`Переменная "${token}" не найдена или строка не заключена в кавычки`);
             }
         } else if (token === 'ARRAY_ACCESS') {
             if (stack.length < 2) throw new Error("Слишком мало операндов для доступа к массиву");
@@ -114,14 +120,28 @@ export function evaluateRPN(rpnQueue, currentVariables) {
                 const a = stack.pop();
                 let result;
                 switch (token) {
-                    case '+': result = a + b; break;
-                    case '-': result = a - b; break;
-                    case '*': result = a * b; break;
+                    case '+':
+                        if (typeof a === 'string' || typeof b === 'string') {
+                            result = String(a) + String(b);
+                        } else {
+                            result = a + b;
+                        }
+                        break;
+                    case '-':
+                        if (typeof a !== 'number' || typeof b !== 'number') throw new Error("Оператор '...' применим только к числам");
+                        result = a - b; 
+                        break;
+                    case '*':
+                        if (typeof a !== 'number' || typeof b !== 'number') throw new Error("Оператор '...' применим только к числам"); 
+                        result = a * b; 
+                        break;
                     case '/':
+                        if (typeof a !== 'number' || typeof b !== 'number') throw new Error("Оператор '...' применим только к числам");
                         if (b === 0) throw new Error("Делить на ноль НЕЛЬЗЯ!");
                         result = Math.trunc(a / b);
                         break;
                     case '%':
+                        if (typeof a !== 'number' || typeof b !== 'number') throw new Error("Оператор '...' применим только к числам");
                         if (b === 0) throw new Error("Деление на ноль НЕЛЬЗЯ (остаток)!");
                         result = a % b;
                         break;

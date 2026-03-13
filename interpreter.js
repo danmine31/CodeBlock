@@ -8,10 +8,11 @@ export function interpretCode(canvas, outputElement) {
     allBlocks.forEach(b => b.classList.remove('error'));
     
     function executeAssignmentStatement(stmt, vars) {
-        const parts = stmt.split('=');
-        if (parts.length !== 2) throw new Error(`Некорректное выражение: ${stmt}`);
-        const varName = parts[0].trim();
-        const expr = parts[1].trim();
+        const equalIndex = stmt.indexOf('=');
+        if (equalIndex === -1) throw new Error(`Некорректное выражение: ${stmt}`);
+    
+        const varName = stmt.substring(0, equalIndex).trim();
+        const expr = stmt.substring(equalIndex + 1).trim();
         if (!(varName in vars)) throw new Error(`Переменная "${varName}" не объявлена`);
         vars[varName] = calculateExpression(expr, vars);
     }
@@ -60,14 +61,7 @@ export function interpretCode(canvas, outputElement) {
                         if (!(varName in variables)) {
                             throw new Error(`"${varName}" не объявлена!`);
                         }
-
-                        if (valueStr in variables) {
-                            variables[varName] = variables[valueStr];
-                        } else if (/^-?\d+$/.test(valueStr)) {
-                            variables[varName] = parseInt(valueStr, 10);
-                        } else {
-                            throw new Error(`Не могу присвоить "${valueStr}!!!". Такой переменной не существует, и это не число`);
-                        }
+                        variables[varName] = calculateExpression(valueStr, variables);
                     } else if (type === 'calculate') {
                         const inputs = block.querySelectorAll('input');
                         const targetExpr = inputs[0].value.trim();
@@ -204,10 +198,13 @@ export function interpretCode(canvas, outputElement) {
             resultString += 'А где переменные???';
         } else {
             for (const key of variableKeys) {
-                if (Array.isArray(variables[key])) {
-                    resultString += `${key} = [${variables[key].join(', ')}]\n`;
+                const value = variables[key];
+                if (Array.isArray(value)) {
+                    resultString += `${key} = [${value.join(', ')}]\n`;
+                } else if (typeof value === 'string') {
+                    resultString += `${key} = "${value}"\n`;
                 } else {
-                    resultString += `${key} = ${variables[key]}\n`;
+                    resultString += `${key} = ${value}\n`;
                 }
             }
         }

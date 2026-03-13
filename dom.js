@@ -216,6 +216,8 @@ export function createBlockElement(type) {
         const input1 = document.createElement('input');
         input1.placeholder = 'имя';
         const input2 = document.createElement('input');
+        input2.type = 'number';
+        input2.min = '1';   
         input2.placeholder = 'размер';
         block.appendChild(text);
         block.appendChild(input1);
