@@ -13,6 +13,7 @@ body {
     border-radius: 4px;
     padding: 10px;
     width: 200px;
+    flex-shrink: 0;
 }
 
 .toolbar h3 {
@@ -60,7 +61,9 @@ body {
     min-height: 100px;
     border-radius: 10px;
     background-color: #252525;
+    color: white;
     white-space: pre-wrap;
+    font-family: monospace;
 }
 
 .block {
@@ -72,6 +75,7 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .block.error {
@@ -79,10 +83,11 @@ body {
     background-color: #ffeaea;
 }
 
-.block input {
+.block input, .block select {
     border: 1px solid #1c009b;
     padding: 4px 6px;
     border-radius: 10px;
+    font-size: 14px;
 }
 
 .dragging {
@@ -101,6 +106,7 @@ body {
     background-color: #ffffff;
     border: 1px dashed #ccc;
     border-radius: 4px;
+    width: 100%;
 }
 
 .nested-blocks-container .block-wrapper {
@@ -125,4 +131,96 @@ body {
 
 .for-block input {
     width: 60px;
+}
+
+.delete-btn {
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: bold;
+    color: #999;
+    margin-right: 5px;
+    line-height: 1;
+}
+
+.delete-btn:hover {
+    color: #333;
+}
+
+.toggle-else-btn {
+    background: none;
+    border: 1px solid #1c009b;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.toggle-else-btn:hover {
+    background-color: #e0e0ff;
+}
+
+@media screen and (min-width: 450px) and (max-width: 799px) {
+    .app-container {
+        flex-direction: column;
+        padding: 15px;
+    }
+
+    .toolbar {
+        width: auto;
+        margin-bottom: 15px;
+    }
+
+    .canvas {
+        min-height: 300px;
+    }
+
+    .output {
+        min-height: 80px;
+        font-size: 14px;
+    }
+
+    .block {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px;
+    }
+
+    .block input,
+    .block select {
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 5px;
+    }
+
+    .if-block > div:first-child,
+    .while-block > div:first-child,
+    .for-block > div:first-child {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 5px;
+    }
+
+    .nested-blocks-container {
+        padding: 8px;
+    }
+
+    .delete-btn {
+        align-self: flex-end;
+    }
+}
+
+@media screen and (min-width: 800px) {
+    .app-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .canvas {
+        min-height: 450px;
+    }
+
+    .output {
+        min-height: 120px;
+    }
 }
