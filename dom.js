@@ -294,3 +294,24 @@ export function createBlockElement(type) {
 
     return block;
 }
+
+export function getBlockData(block) {
+    const type = block.dataset.blockType;
+    const data = { type, values: [], children: [] };
+
+    const header = block.querySelector('.block-header') || block;
+    const controls = header.querySelectorAll('input, select');
+    controls.forEach(control => {
+        data.values.push(control.value);
+    });
+
+    const nestedContainer = block.querySelector('.nested-blocks-container');
+    if (nestedContainer) {
+        Array.from(nestedContainer.children).forEach(child => {
+            if (child.classList.contains('block')) {
+                data.children.push(getBlockData(child)); 
+            }
+        });
+    }
+    return data;
+}

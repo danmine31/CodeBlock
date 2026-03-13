@@ -1,4 +1,3 @@
-
 import { calculateExpression } from './calculator.js';
 
 export function interpretCode(canvas, outputElement) {

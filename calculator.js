@@ -1,4 +1,3 @@
-
 export const operations = {
     '+': { priority: 4, associativity: 'L', type: 'binary' },
     '-': { priority: 4, associativity: 'L', type: 'binary' },

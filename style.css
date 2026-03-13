@@ -19,8 +19,52 @@ body {
     margin-top: 0;
 }
 
+.toolbar button, 
+.toolbar label[for="import-input"] {
+    display: block;
+    width: 100%;
+    box-sizing: border-box; 
+    margin: 8px 0;
+    padding: 10px 15px;
+    
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    
+    border-radius: 8px;
+    border: 1px solid #d1d9e6;
+    cursor: pointer;
+}
+
 .workspace {
     text-align: center;
+}
+
+#export-btn, 
+label[for="import-input"] {
+    background-color: #e9f5ff;
+    color: #1c009b;
+    border: 1px solid #a0c4e4;
+}
+
+#export-btn:hover, 
+label[for="import-input"]:hover {
+    background-color: #d1e9ff;
+}
+
+#run-button {
+    background-color: #1c009b;
+    color: white;
+    margin-top: 15px;
+    box-shadow: 0 4px 0 #120066;
+}
+
+#run-button:hover {
+    background-color: #2a00e6;
+}
+
+#run-button:active {
+    box-shadow: 0 2px 0 #120066;
 }
 
 .block-template {
