@@ -20,10 +20,8 @@ export function interpretCode(canvas, outputElement) {
     function executeSequence(blocks) {
         for (const block of blocks) {
             if (!block.classList.contains('block')) continue;
-
             try {
                 const type = block.dataset.blockType;
-
                 if (type === 'if') {
                     const headerDiv = block.firstElementChild;
                     const conditionStr = headerDiv.querySelector('input').value.trim();
@@ -185,6 +183,27 @@ export function interpretCode(canvas, outputElement) {
                                 executeAssignmentStatement(updateStmt, variables);
                             }
                         } 
+                    } else if (type === 'print') {
+                        const inputVal = block.querySelector('input').value.trim();
+                        if (inputVal) {
+                            try {
+                                const result = calculateExpression(inputVal, variables);
+            
+                                let displayValue;
+            
+                                if (Array.isArray(result)) {
+                                    displayValue = `[${result.join(', ')}]`; 
+                                } else if (typeof result === 'string') {
+                                    displayValue = `"${result}"`;
+                                } else {
+                                    displayValue = result;
+                                }
+            
+                                outputElement.textContent += displayValue + '\n';
+                            } catch (e) {
+                                throw new Error(`Ошибка в блоке вывода: ${e.message}`);
+                            }
+                        }
                     }
                 }
             } catch (e) {
@@ -215,6 +234,8 @@ export function interpretCode(canvas, outputElement) {
                 }
             }
         }
-        outputElement.textContent = resultString;
+        if (success) {
+            outputElement.textContent += '\n--- Выполнение завершено ---';
+        }
     }
 }
