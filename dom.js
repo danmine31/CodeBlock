@@ -278,6 +278,14 @@ export function createBlockElement(type) {
         block.appendChild(headerDiv);
         block.appendChild(nestedContainer);
     }
+    else if (type = "print"){
+        block.appendChild(deleteBtn);
+        block.classList.add('print-block');
+        const printInput = document.createElement('input');
+        printInput.placeholder = 'Что вывести? (напр. x или "Привет")';
+        printInput.style.width = '100%';
+        block.appendChild(printInput);
+    }
 
     return block;
 }
