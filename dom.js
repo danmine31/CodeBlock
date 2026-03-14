@@ -168,6 +168,10 @@ export function createBlockElement(type) {
         thenContainer.classList.add('nested-blocks-container', 'then-container');
         thenContainer.dataset.containerType = 'then';
 
+        const elseContainer = document.createElement('div');
+        elseContainer.classList.add('nested-blocks-container', 'else-container');
+        elseContainer.dataset.containerType = 'else';
+
         block.appendChild(headerDiv);
         block.appendChild(thenContainer);
 
@@ -292,21 +296,25 @@ export function createBlockElement(type) {
 
 export function getBlockData(block) {
     const type = block.dataset.blockType;
-    const data = { type, values: [], children: [] };
+    const data = { type, values: [], children: [], elseChildren: [] };
 
-    const header = block.querySelector('.block-header') || block;
-    const controls = header.querySelectorAll('input, select');
-    controls.forEach(control => {
-        data.values.push(control.value);
-    });
+    const header = block.querySelector('div') || block;
+    const inputs = header.querySelectorAll(':scope > input');
+    inputs.forEach(input => data.values.push(input.value));
 
-    const nestedContainer = block.querySelector('.nested-blocks-container');
+    const nestedContainer = block.querySelector('.nested-blocks-container:not(.else-container)');
     if (nestedContainer) {
-        Array.from(nestedContainer.children).forEach(child => {
-            if (child.classList.contains('block')) {
-                data.children.push(getBlockData(child)); 
-            }
-        });
+        data.children = Array.from(nestedContainer.children)
+            .filter(child => child.classList.contains('block'))
+            .map(child => getBlockData(child));
     }
+
+    const elseContainer = block.querySelector('.else-container');
+    if (elseContainer) {
+        data.elseChildren = Array.from(elseContainer.children)
+            .filter(child => child.classList.contains('block'))
+            .map(child => getBlockData(child));
+    }
+
     return data;
 }

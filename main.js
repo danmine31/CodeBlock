@@ -46,20 +46,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderBlocks(data, container) {
         data.forEach(blockData => {
+        
             const newBlock = createBlockElement(blockData.type, getDraggingElement, setDraggingElement);
-            const header = newBlock.querySelector('.block-header') || newBlock;
-            const controls = header.querySelectorAll('input, select');
             
-            blockData.values.forEach((val, index) => {
-                if (controls[index]) controls[index].value = val;
-            });
+            const header = newBlock.querySelector('div') || newBlock;
+            const inputs = header.querySelectorAll(':scope > input');
+            if (blockData.values) {
+                blockData.values.forEach((val, index) => {
+                    if (inputs[index]) inputs[index].value = val;
+                });
+            }
 
             if (blockData.children && blockData.children.length > 0) {
-                const nestedContainer = newBlock.querySelector('.nested-blocks-container');
+                const nestedContainer = newBlock.querySelector('.nested-blocks-container:not(.else-container)');
                 if (nestedContainer) {
                     renderBlocks(blockData.children, nestedContainer);
                 }
             }
+
+            if (blockData.elseChildren && blockData.elseChildren.length > 0) {
+                const toggleBtn = newBlock.querySelector('.toggle-else-btn');
+                if (toggleBtn) {
+                    toggleBtn.click();
+                    const elseContainer = newBlock.querySelector('.else-container');
+                    if (elseContainer) {
+                        renderBlocks(blockData.elseChildren, elseContainer);
+                    }
+                }
+            }
+
             container.appendChild(newBlock);
         });
     }
