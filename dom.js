@@ -128,26 +128,11 @@ export function createBlockElement(type) {
         const text1 = document.createElement('span');
         text1.textContent = 'Присвоить ';
         const input1 = document.createElement('input');
-        input1.placeholder = 'имя';
+        input1.placeholder = 'переменной или массиву a[i]';
         const text2 = document.createElement('span');
         text2.textContent = ' значение ';
         const input2 = document.createElement('input');
-        input2.placeholder = '0';
-        block.appendChild(text1);
-        block.appendChild(input1);
-        block.appendChild(text2);
-        block.appendChild(input2);
-    } 
-    else if (type === 'calculate') {
-        block.appendChild(deleteBtn);
-        const text1 = document.createElement('span');
-        text1.textContent = 'Присвоить ';
-        const input1 = document.createElement('input');
-        input1.placeholder = 'имя переменной';
-        const text2 = document.createElement('span');
-        text2.textContent = ' значение выражения ';
-        const input2 = document.createElement('input');
-        input2.placeholder = '(6+7) / a';
+        input2.placeholder = 'выражения (например, a + 5)';
         block.appendChild(text1);
         block.appendChild(input1);
         block.appendChild(text2);

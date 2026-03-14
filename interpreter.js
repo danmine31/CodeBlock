@@ -43,30 +43,37 @@ export function interpretCode(canvas, outputElement) {
                 } else {
                     const inputs = block.querySelectorAll('input');
                     if (type === 'declare') {
+                        const val = inputs[0].value.trim();
+                        if (!val) throw new Error("Вы не ввели имена переменных для объявления!");
                         const varNames = inputs[0].value.split(',');
                         const validInput = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
                         for (const name of varNames) {
                             const trimmedName = name.trim();
+                            if (!trimmedName) throw new Error("Ошибка: Обнаружено пустое имя переменной!");
                             if (trimmedName) {
                                 if (!validInput.test(trimmedName)) {
-                                    throw new Error(`Странное какое-то имя - "${trimmedName}". Напоминаю: оно должно начинаться с буквы или '_' и может содержать только буквы, цифры и '_'.`);
+                                    throw new Error(`Странное какое-то имя - "${trimmedName}". Напоминаю: оно должно начинаться с буквы или '_' и может содержать только латиницу, цифры и '_'.`);
                                 }
                                 variables[trimmedName] = 0;
                             }
                         }
                     } else if (type === 'assign') {
-                        const varName = inputs[0].value.trim();
-                        const valueStr = inputs[1].value.trim();
-                        if (!varName) continue;
-                        if (!(varName in variables)) {
-                            throw new Error(`"${varName}" не объявлена!`);
-                        }
-                        variables[varName] = calculateExpression(valueStr, variables);
-                    } else if (type === 'calculate') {
                         const inputs = block.querySelectorAll('input');
                         const targetExpr = inputs[0].value.trim();
                         const valueExpr = inputs[1].value.trim();
+                        const validInput = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+                        const isTargetValid = validInput.test(targetExpr) || /^([a-zA-Z_]\w*)\[(.+)\]$/.test(targetExpr);
+                        
+                        const isValueValid = !/[а-яА-ЯёЁ]/.test(valueExpr.replace(/"[^"]*"/g, ''));
+                        if (!targetExpr) throw new Error("Вы не указали, какой переменной присвоить значение!");
 
+                        if (!isTargetValid && !isValueValid) {
+                            throw new Error('Ошибка: Что вы написали? Мы не можем понять(((');
+                        }
+
+                        if (!isTargetValid) {
+                            throw new Error(`Ошибка: Некорректное имя переменной или массива "${targetExpr}"`);
+                        }
                         if (!targetExpr || !valueExpr) {
                             throw new Error('Надо указа-ть, чему и какое значение присвоить');
                         }
